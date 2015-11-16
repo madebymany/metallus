@@ -1,0 +1,20 @@
+#! /bin/bash
+
+set -e
+
+sync() {
+  local src="$1"
+  local dst="$2"
+  echo "syncing $src to $dst"
+
+  echo "= normalising permissions"
+  for dir in "$src" "$dst"; do
+    [[ -d $dir ]] || continue
+    chown -R root:root "$dir"
+    chmod -R a+r "$dir"
+    find "$dir" -type d -exec chmod a+x '{}' \+
+  done
+
+  echo "= copying..."
+  rsync --archive --quiet --one-file-system --delete "$src" "$dst"
+}

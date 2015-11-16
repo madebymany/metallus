@@ -1,0 +1,12 @@
+#! /bin/bash
+set -e
+set -x
+
+dir=$DIRECTORY
+
+sudo chown -R build:build /build
+export HOME=/build
+
+cd $dir
+
+./build.sh

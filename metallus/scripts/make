@@ -1,0 +1,15 @@
+#! /bin/bash
+set -e
+
+[[ -x /usr/sbin/runsvdir-start ]] && /usr/sbin/runsvdir-start >/dev/null 2>&1 &
+
+cd "$SOURCE_ROOT"
+if [[ -n "$START_IN" ]]; then
+  cd "$START_IN"
+fi
+
+make -e
+
+if [[ -n "$TESTS" ]]; then
+  make $TESTS
+fi

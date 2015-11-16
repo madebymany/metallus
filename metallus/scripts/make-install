@@ -1,0 +1,12 @@
+#! /bin/bash
+set -e
+
+if [[ -n "${START_IN}" ]]; then
+  cd "${SOURCE_ROOT}/${START_IN}"
+else
+  cd "${SOURCE_ROOT}"
+fi
+
+echo "building target ${TARGET}"
+
+make ${TARGET}

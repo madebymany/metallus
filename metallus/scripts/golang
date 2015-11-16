@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e
+set -x
+set -o pipefail
+
+cd "${SOURCE_ROOT}"
+pushd .. >/dev/null
+export GOPATH="${PWD}/gopath"
+popd >/dev/null
+if [[ -n "${START_IN}" ]]; then
+  cd "${START_IN}"
+fi
+
+# Set up GOPATH
+rm -rf "$GOPATH" || true
+mkdir "$GOPATH"
+pushd "$GOPATH" >/dev/null
+mkdir pkg bin src
+popd >/dev/null
+
+curl -sSL https://godeb.s3.amazonaws.com/godeb-amd64.tar.gz | sudo tar -C /usr/local/bin -xz
+if [[ -r .go-version ]]; then
+  godeb install $(<.go-version)
+else
+  godeb install
+fi
+
+package_url=$(git remote -v | awk '/^origin[ \t]/{print $2; exit}')
+if [[ $package_url == git@github.com:* ]]; then
+  package_dir="github.com/${package_url##git@github.com:}"
+else
+  package_dir=${package_url##https://}
+  package_dir=${package_dir##http://}
+fi
+package_dir="${GOPATH}/src/${package_dir%%.git}"
+
+mkdir -p "$(dirname "$package_dir")"
+cp -R . "${package_dir}"
+
+cd "${package_dir}"
+
+if [[ -n "${GO_PACKAGE_DIR}" ]]; then
+  cd "$GO_PACKAGE_DIR"
+fi
+
+go get -d -t -v ./...
+
+go test ./...
+go install

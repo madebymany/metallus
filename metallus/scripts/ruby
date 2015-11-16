@@ -1,0 +1,51 @@
+#! /bin/bash
+
+set -eo pipefail
+
+export RAILS_ENV=test
+
+# start services on container
+[[ -x /usr/sbin/mysqld ]] && sudo -u mysql -g mysql /usr/sbin/mysqld --skip-grant &
+sudo service elasticsearch start || true
+[[ -x /usr/local/bin/redis-server ]] && sudo /usr/local/bin/redis-server --daemonize yes
+
+cd "$SOURCE_ROOT"
+if [[ -n $START_IN ]]; then
+  cd "$START_IN"
+fi
+
+bundle install --deployment
+
+if grep -qwE "mysql2?" Gemfile.lock; then
+  if [[ -r config/database.yml ]]; then
+    git update-index --assume-unchanged config/database.yml
+  fi
+
+  if [[ ! -f config/database.yml ]]
+  then
+  cat << EOF > config/database.yml
+---
+development: &development
+  adapter: mysql2
+  encoding: utf8mb4 
+  charset: utf8mb4 
+  collation: utf8mb4_unicode_ci
+  username: root
+  host: localhost
+  database: rails
+  password: password
+
+test: *development
+EOF
+  fi
+  bundle exec rake db:setup
+fi
+
+[[ -r package.json ]] && npm install --unsafe-perm
+bundle exec rake assets:precompile
+if [[ -f Makefile ]]
+then
+  make
+else
+  exec bundle exec rake test
+fi

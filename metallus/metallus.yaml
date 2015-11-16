@@ -1,0 +1,22 @@
+defaults:
+  home: /var/lib/metallus
+
+repos:
+  example:
+    architectures: "amd64"
+    region: "eu-west-1"
+    bucket: "my-bucket"
+    gpg_id: "my_gpg_id"
+
+notifications:
+  slack:
+    hooks:
+      build-success: "Attention Humans: I built \"{project}\" for \"{author}\" successfully on branch \"{branch}\"\n{changelog}"
+      build-failure: "Attention Humans: I failed to build \"{project}\" for \"{author}\" on branch \"{branch}\"\n{changelog}"
+
+publishers:
+  debian: local-deb-s3
+  ## or:
+  # debian:
+  #   tansit:
+  #     endpoint: tcp://tansit:5556

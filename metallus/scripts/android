@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+set -x
+
+cd "$SOURCE_ROOT"
+if [[ -n $START_IN ]]; then
+  cd "$START_IN"
+fi
+
+export ANDROID_HOME=/android-sdk-linux
+export PATH=${ANDROID_HOME}/tools:${ANDROID_HOME}/build-tools:${ANDROID_HOME}/platform-tools:$PATH
+
+if [[ -r .gradle-tasks ]]; then
+  gradle_tasks=$(< .gradle-tasks)
+else
+  gradle_tasks="build"
+fi
+
+./gradlew $gradle_tasks
+
+if [[ -r .appalling-app-ids ]]; then
+  git_ref=$(git symbolic-ref HEAD)
+  git_branch=${git_ref#refs/heads/}
+  python -sS -c 'import sys; from ConfigParser import *; p = RawConfigParser(); p.readfp(open(".appalling-app-ids")); print "\n".join("app_id=\"{}\"; fn=\"{}\";".format(*i) for i in p.items(sys.argv[1]))' "${git_branch}" | while read vars; do
+    eval "$vars"
+    appalling -file="${fn}" -key="RXZQaKoLfuSeeQWEtinv" -app_id="${app_id}" \
+      -release_notes="$(git log --format='* %s' ORIG_HEAD..HEAD)"
+  done
+fi

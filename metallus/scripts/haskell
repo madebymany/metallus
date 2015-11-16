@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -eo pipefail
+
+GHC_VERSION="${GHC_VERSION:-7.8.3}"
+CABAL_VERSION="${CABAL_VERSION:-1.22}"
+
+cd "$SOURCE_ROOT"
+if [[ -n $START_IN ]]; then
+  cd "$START_IN"
+fi
+
+set -x
+
+export PATH="/opt/ghc/${GHC_VERSION}/bin:/opt/cabal/${CABAL_VERSION}/bin:$PATH"
+
+cabal sandbox init
+cabal update
+cabal install -j --only-dependencies
+if [[ -z $SKIP_TESTS ]]; then
+  cabal configure --enable-tests
+  cabal test
+  cabal clean
+fi
+cabal configure --disable-tests
+cabal build -j

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+export DEBIAN_FRONTEND=noninteractive
+
+set -xeo pipefail
+
+curl -SsL https://get.docker.io/gpg | apt-key add -
+echo "deb http://get.docker.io/ubuntu docker main" >/etc/apt/sources.list.d/docker.list
+apt-get update -qq
+
+# Install AUFS first so docker starts up detecting it
+apt-get install -qy aufs-tools "linux-image-extra-$(uname -r)"
+
+apt-get install -qy lxc-docker python-setuptools ruby ruby-dev zlib1g-dev libxml2-dev libxslt1-dev git build-essential libzmq3-dev python-dev python3-pip git-core
+
+pip3 install awscli
+
+curl -SsLO https://github.com/madebymany/deb-s3/releases/download/0.7.0-mxm1/deb-s3-0.7.0.gem
+gem install --no-rdoc --no-ri deb-s3-0.7.0.gem fpm
+
+mkdir -p /etc/metallus
+cp /vagrant/metallus/metallus.yaml /etc/metallus/metallus.yml
+
+if ! grep -q "SSH_AUTH_SOCK" /etc/sudoers; then
+    echo "Defaults        env_keep=\"SSH_AUTH_SOCK\"" >> /etc/sudoers
+fi

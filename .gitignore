@@ -1,0 +1,7 @@
+/*.egg-info/
+.ssh*
+/build/
+/dist/
+*.pyc
+*.vagrant
+/testgit/
