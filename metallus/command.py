@@ -77,7 +77,7 @@ class Command(object):
 
     def parse_build_args(self, args):
         parser = argparse.ArgumentParser()
-        parser.add_argument("project")
+        parser.add_argument("git_url")
         parser.add_argument("job")
         parser.add_argument("branch")
         parser.add_argument("-p", type=bool, default=False)
@@ -88,7 +88,7 @@ class Command(object):
 
     def parse_package_args(self, args):
         parser = argparse.ArgumentParser()
-        parser.add_argument("project")
+        parser.add_argument("git_url")
         parser.add_argument("job")
         parser.add_argument("branch")
         parser.add_argument("--codename", help="e.g. unstable, stable")
