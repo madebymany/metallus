@@ -66,7 +66,7 @@ class Command(object):
         return context
 
     def _set_project_from_args(self, args):
-        self.project = Project(args.project, self.home, args.branch, args.job)
+        self.project = Project(args.git_url, self.home, args.branch, args.job)
         if args.skip_tests:
             self.project.skip_tests = True
 
@@ -104,13 +104,6 @@ class Command(object):
             args.codename = self.project.branch_codenames.get(args.branch)
         self._set_package_manager_from_args(args)
         return args
-
-    def parse_image_args(self, args):
-        parser = argparse.ArgumentParser()
-        subparsers = parser.add_subparsers(help='images command help')
-        build_parser = subparsers.add_parser("build")
-        build_parser.add_argument("name")
-        return parser.parse_args(args)
 
     def build(self, args):
         args = self.parse_build_args(args)
