@@ -97,7 +97,8 @@ class Git(object):
             self._repo = git.Repo(self.path)
             self._changed_paths = None
         else:
-            self._repo = git.Repo.clone_from(self.url, self.path + "/")
+            self._repo = git.Repo.clone_from(self.url, self.path + "/",
+                                             recursive=True)
             self._changed_paths = True  # "everything"
         repo = self._repo
 
@@ -112,6 +113,8 @@ class Git(object):
         repo.head.reset(index=True, working_tree=True,
                         commit=getattr(repo.remotes.origin.refs,
                                        branch))
+        repo.submodule_update(recursive=True, init=True, force_remove=True,
+                              force_reset=True)
 
         last_build_tag = getattr(repo.tags, self.last_build_tag_name, None)
         last_successful_commit = (last_build_tag.commit if last_build_tag
