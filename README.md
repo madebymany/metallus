@@ -30,6 +30,13 @@ jobs:
     # An array of layers required in the Dockerfile to build the job. These
     # are stored in metallus/metallus.yaml in this repository.
     # Dockerfile.
+    apt_repos:
+      # you can use PPA or Deb style repository URL's, metallus understands how to configure both.
+      - "ppa:user/archive"
+      - "deb https://my-repo/ codename component"
+    apt_keys:
+      # this is expected to be a URL to the GPG signing public key, metallus with install the key if it's a reachable URL. 
+      - "https://apt.mxmdev.com/mxmops.gpg.key"
     build_depends:
       - "elasticsearch-runit=0.90.13-4"
     # Gives the root of the job in the source repository. For repositories with

@@ -88,10 +88,14 @@ class SlackNotifier(object):
             name = u.get("name").lower()
             email = u["profile"].get("email", "").lower()
             real_name = u["profile"]["real_name"].lower()
-            if name == author.name.lower() or \
-               real_name == author.name.lower() or \
-               email == author.email.lower():
-                return "@" + name
+
+        if type(author) is str:
+            return author
+
+        if name == author.lower() or \
+           real_name == author.lower() or \
+           email == author.email.lower():
+            return "@" + name
         return author.name
 
 
