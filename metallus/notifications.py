@@ -77,6 +77,7 @@ class SlackNotifier(object):
     def format_message(self, message):
         for k, v in self.config.iteritems():
             pattern = "{" + k + "}"
+            v = v if v else ""
             if pattern in message:
                 if k == "author":
                     v = self.get_username(v)

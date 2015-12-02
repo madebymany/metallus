@@ -11,8 +11,8 @@ repos:
 notifications:
   slack:
     hooks:
-      build-success: "Attention Humans: I built \"{project}\" for \"{author}\" successfully on branch \"{branch}\"\n{changelog}"
-      build-failure: "Attention Humans: I failed to build \"{project}\" for \"{author}\" on branch \"{branch}\"\n{changelog}"
+      build-success: "Attention Humans: I built {project} for {author} successfully on the {branch} branch\n{changelog}"
+      build-failure: "Attention Humans: I failed to build {project} for {author} on the {branch} branch\n{changelog}\n{build_url}"
 
 publishers:
   debian: local-deb-s3
