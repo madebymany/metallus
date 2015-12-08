@@ -7,7 +7,7 @@ import os
 from os import path
 
 from .builders import Builder, BuildException
-from .dockerfile import DockerFile
+from .dockerfile import *
 from .config import Config
 from .project import Project
 from .packages import PackageManager
@@ -113,10 +113,8 @@ class Command(object):
         if self.project.current_job.dockerfile is not None:
             raise NotImplementedError("build the dockerfile")
         image = self.project.image_for_stage('build-deps')
-        image.create_image(
-            DockerFile(self.project,
-                       self.project.current_job.apt_repos,
-                       self.project.current_job.apt_keys))
+
+        image.create_image(get_dockerfile(self.project))
 
         builder = Builder(self.config.defaults, image,
                           self.project.current_job,

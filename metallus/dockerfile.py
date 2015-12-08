@@ -2,8 +2,11 @@
 
 import StringIO
 import hashlib
+import re
+import glob
 import json
 import os
+import sys
 from urlparse import urlparse
 from os import path
 import shutil
@@ -15,23 +18,25 @@ DEP_MAKEFILE_PATH = "/tmp/metallus/build_deps/"  # trailing slash is needed
 MAKEFILE_NAME = "Makefile"
 
 
-class DockerFile(object):
+def get_dockerfile(project):
+    if project.current_job.build_depends_target:
+        return MakeDockerFile(project)
+    else:
+        return AptDockerFile(project,
+                       project.current_job.apt_repos,
+                       project.current_job.apt_keys)
 
-    def __init__(self, project, repos, keys):
-        if repos is None:
-            self.repos = []
-        if keys is None:
-            self.keys = []
+class DockerFile(object):
+    
+    def __init__(self, project):
         self.project = project
-        self.repos = repos
-        self.keys = keys
         self.path_dir = path.join(defaults.HOME, project.path, 'image')
+
         if not path.isdir(self.path_dir):
             os.makedirs(self.path_dir)
-        self.path = path.join(self.path_dir, 'dockerfile')
+        self.path = path.join(self.path_dir, 'Dockerfile')
         self.contents = StringIO.StringIO()
         self.commands = []
-        self._repo_hashes = []
 
         self._create_manifest()
         if not path.isfile(self.path):
@@ -40,13 +45,18 @@ class DockerFile(object):
     def _create_manifest(self):
         self._add_base_image()
         self._add_environment()
-        self._process_commands()
+        self.process_commands()
 
     def _add_base_image(self):
         self._write_line("FROM {0}\n".format(self.project.current_job.base))
 
     def _add_environment(self):
         self._write_line("ENV DEBIAN_FRONTEND noninteractive")
+
+    def _run_commands(self, config):
+        if config is not None:
+            for command in config:
+                self._add_command(command)
 
     def _copy_file(self, from_path, to_path):
         self._write_line("COPY {}".format(json.dumps([from_path, to_path])))
@@ -55,24 +65,53 @@ class DockerFile(object):
         if self.commands:
             self._write_line("RUN {}".format(" && ".join(self.commands)))
             self.commands = []
+            
+    def _add_command(self, cmd):
+        self.commands.append(cmd)
 
-    def _process_commands(self):
+    def file_exists(self):
+        return path.isfile(self.path)
+
+    def changed(self):
+        if not path.isfile(self.path):
+            return True
+
+        old = hashlib.sha256(self.contents.getvalue()).digest()
+        with open(self.path, "r") as f:
+            current = hashlib.sha256(f.read()).digest()
+        return old != current
+
+    def write(self):
+        if self.changed():
+            with open(self.path, "w") as f:
+                f.write(self.contents.getvalue())
+            return True
+        else:
+            return False
+
+    def _write_line(self, l):
+        self.contents.write(l.strip() + "\n")
+
+
+class AptDockerFile(DockerFile):
+
+    def __init__(self, project, repos, keys):
+        if repos is None:
+            self.repos = []
+        if keys is None:
+            self.keys = []
+        self.repos = repos
+        self.keys = keys
+        self._repo_hashes = []
+        super(AptDockerFile, self).__init__(project)
+
+    def process_commands(self):
         self._add_apt_keys(self.keys)
         self._add_apt_repos(self.repos)
 
         job = self.project.current_job
         self._install_packages(job.build_depends)
         self._flush_commands()
-
-        if job.build_depends_target:
-            shutil.copy(path.join(self.project.source.path, MAKEFILE_NAME),
-                        self.path_dir)
-            self._copy_file(path.join(job.start_in, "Makefile"),
-                            DEP_MAKEFILE_PATH)
-            self._add_command("cd '{}' && make '{}'".
-                              format(DEP_MAKEFILE_PATH,
-                                     job.build_depends_target))
-            self._flush_commands()
 
     def _add_apt_keys(self, keys):
         for key in self.keys:
@@ -148,10 +187,6 @@ class DockerFile(object):
                         "apt-key adv --keyserver keys.gnupg.net "
                         "--recv-keys {}".format(repo["key"]))
 
-    def _run_commands(self, config):
-        if config is not None:
-            for command in config:
-                self._add_command(command)
 
     def _install_packages(self, config):
         if config is not None:
@@ -172,31 +207,49 @@ class DockerFile(object):
                     "apt-get install -qy {}".
                     format(' '.join("'{}'".format(p) for p in packages)))
 
-    def _add_command(self, cmd):
-        self.commands.append(cmd)
-
     def _add_apt_update(self):
         self._add_command("apt-get update -qq")
 
-    def file_exists(self):
-        return path.isfile(self.path)
 
-    def changed(self):
-        if not path.isfile(self.path):
-            return True
+class MakeDockerFile(DockerFile):
 
-        old = hashlib.sha256(self.contents.getvalue()).digest()
-        with open(self.path, "r") as f:
-            current = hashlib.sha256(f.read()).digest()
-        return old != current
+    def __init__(self, project):
+        self.paths = []
+        super(MakeDockerFile, self).__init__(project)
 
-    def write(self):
-        if self.changed():
-            with open(self.path, "w") as f:
-                f.write(self.contents.getvalue())
-            return True
-        else:
-            return False
+    def expand_make_file(self, prefix, path):
+        with open(os.path.join(prefix, path), "r") as f:
+            p = re.compile('^include\s+([\*\.\/\S]+)')
+            for l in f:
+                m = p.match(l)
+                if m is not None:
+                    g = m.group(1)
+                    all_make_files = glob.glob(os.path.join(prefix, g))
 
-    def _write_line(self, l):
-        self.contents.write(l.strip() + "\n")
+                    for mp in all_make_files:
+                        d = os.path.dirname(mp)
+                        d = d.split(prefix)[1].strip("/")
+                        if d not in self.paths:
+                            self.paths.append(d)
+                        self.expand_make_file(prefix, mp)
+
+    def process_commands(self):
+        job = self.project.current_job
+
+        tmp_path = os.path.join(self.path_dir, "src")
+        if os.path.exists(tmp_path):
+            shutil.rmtree(tmp_path)
+
+        shutil.copytree(self.project.source.path, tmp_path)
+        prefix = os.path.join(tmp_path, job.start_in)
+        self.expand_make_file(prefix, "Makefile")
+        for v in self.paths:
+            self._copy_file(path.join("src", v), path.join(DEP_MAKEFILE_PATH, v))
+
+        self._copy_file(path.join("src", job.start_in, "Makefile"),
+                        DEP_MAKEFILE_PATH)
+
+        self._add_command("cd '{}' && make '{}'".
+                          format(DEP_MAKEFILE_PATH,
+                                 job.build_depends_target))
+        self._flush_commands()
