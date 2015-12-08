@@ -4,6 +4,7 @@ import StringIO
 import hashlib
 import json
 import os
+import sys
 from urlparse import urlparse
 from os import path
 import shutil
@@ -16,22 +17,16 @@ MAKEFILE_NAME = "Makefile"
 
 
 class DockerFile(object):
-
-    def __init__(self, project, repos, keys):
-        if repos is None:
-            self.repos = []
-        if keys is None:
-            self.keys = []
+    
+    def __init__(self, project):
         self.project = project
-        self.repos = repos
-        self.keys = keys
         self.path_dir = path.join(defaults.HOME, project.path, 'image')
+
         if not path.isdir(self.path_dir):
             os.makedirs(self.path_dir)
-        self.path = path.join(self.path_dir, 'dockerfile')
+        self.path = path.join(self.path_dir, 'Dockerfile')
         self.contents = StringIO.StringIO()
         self.commands = []
-        self._repo_hashes = []
 
         self._create_manifest()
         if not path.isfile(self.path):
@@ -40,13 +35,18 @@ class DockerFile(object):
     def _create_manifest(self):
         self._add_base_image()
         self._add_environment()
-        self._process_commands()
+        self.process_commands()
 
     def _add_base_image(self):
         self._write_line("FROM {0}\n".format(self.project.current_job.base))
 
     def _add_environment(self):
         self._write_line("ENV DEBIAN_FRONTEND noninteractive")
+
+    def _run_commands(self, config):
+        if config is not None:
+            for command in config:
+                self._add_command(command)
 
     def _copy_file(self, from_path, to_path):
         self._write_line("COPY {}".format(json.dumps([from_path, to_path])))
@@ -55,24 +55,53 @@ class DockerFile(object):
         if self.commands:
             self._write_line("RUN {}".format(" && ".join(self.commands)))
             self.commands = []
+            
+    def _add_command(self, cmd):
+        self.commands.append(cmd)
 
-    def _process_commands(self):
+    def file_exists(self):
+        return path.isfile(self.path)
+
+    def changed(self):
+        if not path.isfile(self.path):
+            return True
+
+        old = hashlib.sha256(self.contents.getvalue()).digest()
+        with open(self.path, "r") as f:
+            current = hashlib.sha256(f.read()).digest()
+        return old != current
+
+    def write(self):
+        if self.changed():
+            with open(self.path, "w") as f:
+                f.write(self.contents.getvalue())
+            return True
+        else:
+            return False
+
+    def _write_line(self, l):
+        self.contents.write(l.strip() + "\n")
+
+
+class AptDockerFile(DockerFile):
+
+    def __init__(self, project, repos, keys):
+        if repos is None:
+            self.repos = []
+        if keys is None:
+            self.keys = []
+        self.repos = repos
+        self.keys = keys
+        self._repo_hashes = []
+        super(AptDockerFile, self).__init__(project)
+
+    def process_commands(self):
         self._add_apt_keys(self.keys)
         self._add_apt_repos(self.repos)
 
         job = self.project.current_job
         self._install_packages(job.build_depends)
         self._flush_commands()
-
-        if job.build_depends_target:
-            shutil.copy(path.join(self.project.source.path, MAKEFILE_NAME),
-                        self.path_dir)
-            self._copy_file(path.join(job.start_in, "Makefile"),
-                            DEP_MAKEFILE_PATH)
-            self._add_command("cd '{}' && make '{}'".
-                              format(DEP_MAKEFILE_PATH,
-                                     job.build_depends_target))
-            self._flush_commands()
 
     def _add_apt_keys(self, keys):
         for key in self.keys:
@@ -148,10 +177,6 @@ class DockerFile(object):
                         "apt-key adv --keyserver keys.gnupg.net "
                         "--recv-keys {}".format(repo["key"]))
 
-    def _run_commands(self, config):
-        if config is not None:
-            for command in config:
-                self._add_command(command)
 
     def _install_packages(self, config):
         if config is not None:
@@ -172,31 +197,33 @@ class DockerFile(object):
                     "apt-get install -qy {}".
                     format(' '.join("'{}'".format(p) for p in packages)))
 
-    def _add_command(self, cmd):
-        self.commands.append(cmd)
-
     def _add_apt_update(self):
         self._add_command("apt-get update -qq")
 
-    def file_exists(self):
-        return path.isfile(self.path)
 
-    def changed(self):
-        if not path.isfile(self.path):
-            return True
+class MakeDockerFile(DockerFile):
 
-        old = hashlib.sha256(self.contents.getvalue()).digest()
-        with open(self.path, "r") as f:
-            current = hashlib.sha256(f.read()).digest()
-        return old != current
+    def __init__(self, project):
+        super(MakeDockerFile, self).__init__(project)
 
-    def write(self):
-        if self.changed():
-            with open(self.path, "w") as f:
-                f.write(self.contents.getvalue())
-            return True
-        else:
-            return False
+    def process_commands(self):
+        job = self.project.current_job
 
-    def _write_line(self, l):
-        self.contents.write(l.strip() + "\n")
+        self._flush_commands()
+        src_path = self.path_dir + "/src"
+
+        if os.path.exists(src_path):
+            shutil.rmtree(src_path)
+
+        shutil.copytree(self.project.source.path + "/", self.path_dir + "/src")
+
+        self._copy_file(path.join("src", job.start_in, "Makefile"),
+                        DEP_MAKEFILE_PATH)
+
+        self._copy_file(path.join("src", job.start_in, "makedeps"),
+                        DEP_MAKEFILE_PATH + "makedeps")
+
+        self._add_command("cd '{}' && make '{}'".
+                          format(DEP_MAKEFILE_PATH,
+                                 job.build_depends_target))
+        self._flush_commands()
