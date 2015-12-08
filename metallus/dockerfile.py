@@ -2,6 +2,8 @@
 
 import StringIO
 import hashlib
+import re
+import glob
 import json
 import os
 import sys
@@ -15,6 +17,14 @@ from . import defaults
 DEP_MAKEFILE_PATH = "/tmp/metallus/build_deps/"  # trailing slash is needed
 MAKEFILE_NAME = "Makefile"
 
+
+def get_dockerfile(project):
+    if project.current_job.build_depends_target:
+        return MakeDockerFile(project)
+    else:
+        return AptDockerFile(project,
+                       project.current_job.apt_repos,
+                       project.current_job.apt_keys)
 
 class DockerFile(object):
     
@@ -204,24 +214,40 @@ class AptDockerFile(DockerFile):
 class MakeDockerFile(DockerFile):
 
     def __init__(self, project):
+        self.paths = []
         super(MakeDockerFile, self).__init__(project)
+
+    def expand_make_file(self, prefix, path):
+        with open(os.path.join(prefix, path), "r") as f:
+            p = re.compile('^include\s+([\*\.\/\S]+)')
+            for l in f:
+                m = p.match(l)
+                if m is not None:
+                    g = m.group(1)
+                    all_make_files = glob.glob(os.path.join(prefix, g))
+
+                    for mp in all_make_files:
+                        d = os.path.dirname(mp)
+                        d = d.split(prefix)[1].strip("/")
+                        if d not in self.paths:
+                            self.paths.append(d)
+                        self.expand_make_file(prefix, mp)
 
     def process_commands(self):
         job = self.project.current_job
 
-        self._flush_commands()
-        src_path = self.path_dir + "/src"
+        tmp_path = os.path.join(self.path_dir, "src")
+        if os.path.exists(tmp_path):
+            shutil.rmtree(tmp_path)
 
-        if os.path.exists(src_path):
-            shutil.rmtree(src_path)
-
-        shutil.copytree(self.project.source.path + "/", self.path_dir + "/src")
+        shutil.copytree(self.project.source.path, tmp_path)
+        prefix = os.path.join(tmp_path, job.start_in)
+        self.expand_make_file(prefix, "Makefile")
+        for v in self.paths:
+            self._copy_file(path.join("src", v), path.join(DEP_MAKEFILE_PATH, v))
 
         self._copy_file(path.join("src", job.start_in, "Makefile"),
                         DEP_MAKEFILE_PATH)
-
-        self._copy_file(path.join("src", job.start_in, "makedeps"),
-                        DEP_MAKEFILE_PATH + "makedeps")
 
         self._add_command("cd '{}' && make '{}'".
                           format(DEP_MAKEFILE_PATH,

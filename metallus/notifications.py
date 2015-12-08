@@ -93,7 +93,7 @@ class SlackNotifier(object):
             return actor
 
         if name == actor.name.lower() or \
-           real_name == actor.committer.lower() or \
+           real_name == actor.name.lower() or \
            email == actor.email.lower():
             return "@" + name
         return actor.name
