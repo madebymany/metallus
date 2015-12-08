@@ -7,7 +7,7 @@ import os
 from os import path
 
 from .builders import Builder, BuildException
-from .dockerfile import *
+from .dockerfile import get_dockerfile
 from .config import Config
 from .project import Project
 from .packages import PackageManager
