@@ -238,7 +238,7 @@ class MakeDockerFile(DockerFile):
 
         tmp_path = os.path.join(self.path_dir, "src")
         if os.path.exists(tmp_path):
-            shutil.rmtree(tmp_path)
+            shutil.rmtree(tmp_path, True)
 
         shutil.copytree(self.project.source.path, tmp_path)
         prefix = os.path.join(tmp_path, job.start_in)
