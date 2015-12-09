@@ -8,7 +8,6 @@ from os import path, makedirs
 import urlparse
 
 from .source import Git
-from .images import Image
 from .utils import sha256
 from .jobs import Job
 from .containers.container import CONTAINER_TEMP
@@ -85,15 +84,6 @@ class Project(object):
             repository=self.image_name(stage),
             tag=self.source.hash,
         )
-
-    def image_for_stage(self, stage):
-        return Image(*self.image_args(stage))
-
-    def image_name(self, stage):
-        return '.'.join([self.name, self.current_job.name, stage]).lower()
-
-    def image_args(self, stage):
-        return (self.image_name(stage), self.source.current_branch)
 
     def tag_success(self):
         return self.source.tag_success()

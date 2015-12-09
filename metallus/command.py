@@ -10,6 +10,7 @@ from .builders import Builder, BuildException
 from .dockerfile import get_dockerfile
 from .config import Config
 from .project import Project
+from .images import Image, get_tag_with_hash, get_repository_name
 from .packages import PackageManager
 from .notifications import NotificationManager
 from os.path import expanduser
@@ -112,9 +113,11 @@ class Command(object):
     def _build(self, args):
         if self.project.current_job.dockerfile is not None:
             raise NotImplementedError("build the dockerfile")
-        image = self.project.image_for_stage('build-deps')
-
-        image.create_image(get_dockerfile(self.project))
+        dockerfile = get_dockerfile(self.project)
+        tag = get_tag_with_hash(self.project.source.current_branch, dockerfile.hash())
+        repository = get_repository_name(self.project, "build-deps")
+        image = Image(repository, tag)
+        image.create_image(dockerfile)
 
         builder = Builder(self.config.defaults, image,
                           self.project.current_job,
