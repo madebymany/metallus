@@ -124,13 +124,13 @@ class Command(object):
                           self.project.current_job.build_type, self.project)
         try:
             builder.build()
-            self.notifier.run_hook("build-success",
-                                   self._gen_notification_context())
+            #self.notifier.run_hook("build-success",
+            #                       self._gen_notification_context())
             return builder
         except BuildException as ex:
             builder.remove()
-            self.notifier.run_hook("build-failure",
-                                   self._gen_notification_context())
+            #self.notifier.run_hook("build-failure",
+            #                       self._gen_notification_context())
             self.die("failed to build project {}; "
                      "build exited with '{}'".format(self.project.name,
                                                      ex.status))
