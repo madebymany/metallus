@@ -64,6 +64,7 @@ class Command(object):
         context["branch"] = self.project.source.current_branch
         context["changelog"] = self.project.source.format_commits()
         context["job"] = self.project.current_job.name
+        context["packages"] = ", ".join([p['name'] for p in self.project.current_job.packages])
         return context
 
     def _set_project_from_args(self, args):
@@ -124,19 +125,21 @@ class Command(object):
                           self.project.current_job.build_type, self.project)
         try:
             builder.build()
-            #self.notifier.run_hook("build-success",
-            #                       self._gen_notification_context())
+            self.notifier.run_hook("build-success",
+                                   self._gen_notification_context())
             return builder
         except BuildException as ex:
             builder.remove()
-            #self.notifier.run_hook("build-failure",
-            #                       self._gen_notification_context())
+            self.notifier.run_hook("build-failure",
+                                   self._gen_notification_context())
             self.die("failed to build project {}; "
                      "build exited with '{}'".format(self.project.name,
                                                      ex.status))
 
     def _package(self, *args, **kwargs):
         self.package_manager.package(*args, **kwargs)
+        self.notifier.run_hook("package-success",
+                               self._gen_notification_context())
 
     def dist(self, args):
         args = self.parse_package_args(args)

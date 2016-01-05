@@ -85,17 +85,18 @@ class SlackNotifier(object):
 
     def get_username(self, actor):
         for u in slack.users.list()["members"]:
-            name = u.get("name").lower()
-            email = u["profile"].get("email", "").lower()
-            real_name = u["profile"]["real_name"].lower()
+            if "profile" in u:
+                name = u.get("name").lower()
+                email = u["profile"].get("email", "").lower()
+                real_name = u["profile"]["real_name"].lower()
 
-        if type(actor) is str:
-            return actor
+                if type(actor) is str:
+                    return actor
 
-        if name == actor.name.lower() or \
-           real_name == actor.name.lower() or \
-           email == actor.email.lower():
-            return "@" + name
+                if name == actor.name.lower() or \
+                   real_name == actor.name.lower() or \
+                   email == actor.email.lower():
+                    return "@" + name
         return actor.name
 
 

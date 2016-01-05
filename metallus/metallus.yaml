@@ -13,6 +13,7 @@ notifications:
     hooks:
       build-success: "Attention Humans: I built \"{project}\" for \"{author}\" successfully on branch \"{branch}\"\n{changelog}"
       build-failure: "Attention Humans: I failed to build \"{project}\" for \"{author}\" on branch \"{branch}\"\n{changelog}"
+      package-success: "Attention Humans: The packages \"{packages}\" have finished building for \"{project}\" on branch \"{branch}\" for \"{author}\""
 
 publishers:
   debian: local-deb-s3
