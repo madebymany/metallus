@@ -87,22 +87,19 @@ class SlackNotifier(object):
         for u in slack.users.list()["members"]:
             if "profile" in u:
                 profile = u["profile"]
-                name = u.get("name").lower()
-                if "email" in profile:
-                    try:
-                        email = profile["email"].lower()
-                    except e as Exception:
-                        email = ""
-                real_name = profile["real_name"].lower()
+                name = u.get("name", "").lower()
+                email = profile.get("email", "").lower()
+                real_name = profile.get("real_name", "").lower()
 
                 if type(actor) is str:
                     return actor
 
-                if name == actor.name.lower() or \
-                   real_name == actor.name.lower() or \
+                actor_name = actor.name.lower()
+                if name == actor_name or real_name == actor_name or \
                    email == actor.email.lower():
                     return "@" + name
         return actor.name
+
 
 class HookNotFoundException(Exception):
     pass
