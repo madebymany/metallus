@@ -63,6 +63,7 @@ class Command(object):
         context["branch"] = self.project.source.current_branch
         context["changelog"] = self.project.source.format_commits()
         context["job"] = self.project.current_job.name
+        context["build_url"] = os.environ.get("BUILD_URL")
         return context
 
     def _set_project_from_args(self, args):
