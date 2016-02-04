@@ -7,6 +7,7 @@ repos:
     region: "eu-west-1"
     bucket: "my-bucket"
     gpg_id: "my_gpg_id"
+    acl: "public"
 
 notifications:
   slack:

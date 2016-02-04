@@ -24,6 +24,10 @@ def deb_s3_args(subcommand, *args, **kwargs):
         kwargs['bucket'] = repo['bucket']
         kwargs['endpoint'] = s3_host(repo.get('region'))
         kwargs['sign'] = repo['gpg_id']
+        if 'acl' in repo:
+            kwargs['visibility'] = repo['acl']
+        else:
+            kwargs['visibility'] = 'private'
     return ['deb-s3', subcommand] + list(args) + \
         [("--{}".format(k) if v is True else "--{}={}".format(k, v))
          for (k, v) in kwargs.items()]
