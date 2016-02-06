@@ -27,7 +27,7 @@ def deb_s3_args(subcommand, *args, **kwargs):
         if 'acl' in repo:
             kwargs['visibility'] = repo['acl']
         else:
-            kwargs['visibility'] = 'bucket-owner-full-control'
+            kwargs['visibility'] = 'bucket_owner'
     return ['deb-s3', subcommand] + list(args) + \
         [("--{}".format(k) if v is True else "--{}={}".format(k, v))
          for (k, v) in kwargs.items()]
