@@ -86,6 +86,7 @@ class Command(object):
         parser.add_argument("branch")
         parser.add_argument("-p", type=bool, default=False)
         parser.add_argument("--skip-tests", action='store_true')
+        parser.add_argument("--keep-build-container", action='store_true')
         args = parser.parse_args(args)
         self._set_project_from_args(args)
         return args
@@ -98,6 +99,7 @@ class Command(object):
         parser.add_argument("--codename", help="e.g. unstable, stable")
         parser.add_argument("--or-just-build", action='store_true')
         parser.add_argument("--skip-tests", action='store_true')
+        parser.add_argument("--keep-build-container", action='store_true')
         parser.add_argument("--package", help="e.g. my-package-name",
                             default=None)
         parser.add_argument("--repo", help="override APT repository "
@@ -126,6 +128,7 @@ class Command(object):
         builder = Builder(self.config.defaults, image,
                           self.project.current_job,
                           self.project.current_job.build_type, self.project)
+        builder.keep_build_container = args.keep_build_container
         try:
             builder.build()
             self.notifier.run_hook("build-success",

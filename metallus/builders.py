@@ -14,6 +14,7 @@ class Builder(object):
         self.ssh_dir = config.get('ssh_dir', None)
         self.container = None
         self.result_image = None
+        self.keep_build_container = False
 
     def remove(self):
         if self.container:
@@ -36,7 +37,8 @@ class Builder(object):
         return self.result_image
 
     def __exit__(self, *args):
-        self.remove()
+        if not self.keep_build_container:
+            self.remove()
 
 
 class BuildException(Exception):
