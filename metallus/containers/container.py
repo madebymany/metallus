@@ -11,7 +11,7 @@ import tarfile
 import threading
 import time
 
-from ..images import Image
+from ..images import Image, get_repository_name
 from ..utils import new_docker_client
 
 CONTAINER_BASE_DIR = '/.metallus'
@@ -148,7 +148,8 @@ class Container(object):
             prev = p
 
     def commit(self, project, stage):
-        repository, tag = project.image_args(stage)
+        repository = get_repository_name(project, 'build')
+        tag = project.source.current_branch
         self.client.commit(self.container_id, repository=repository,
                            tag=tag)
         return Image(repository, tag)

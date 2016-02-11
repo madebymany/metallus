@@ -7,12 +7,14 @@ repos:
     region: "eu-west-1"
     bucket: "my-bucket"
     gpg_id: "my_gpg_id"
+    acl: "public"
 
 notifications:
   slack:
     hooks:
       build-success: "Attention Humans: I built {project} for {author} successfully on the {branch} branch\n{changelog}"
       build-failure: "Attention Humans: I failed to build {project} for {author} on the {branch} branch\n{changelog}\n{build_url}"
+      package-success: "Attention Humans: The packages {packages} have finished building for {project} on the {branch} branch for {author}"
 
 publishers:
   debian: local-deb-s3

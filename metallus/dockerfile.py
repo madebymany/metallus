@@ -6,7 +6,6 @@ import re
 import glob
 import json
 import os
-import sys
 from urlparse import urlparse
 from os import path
 import shutil
@@ -37,15 +36,6 @@ class DockerFile(object):
         self.path = path.join(self.path_dir, 'Dockerfile')
         self.contents = StringIO.StringIO()
         self.commands = []
-
-        self._create_manifest()
-        if not path.isfile(self.path):
-            self.write()
-
-    def _create_manifest(self):
-        self._add_base_image()
-        self._add_environment()
-        self.process_commands()
 
     def _add_base_image(self):
         self._write_line("FROM {0}\n".format(self.project.current_job.base))
@@ -82,6 +72,10 @@ class DockerFile(object):
         return old != current
 
     def write(self):
+        self._add_base_image()
+        self._add_environment()
+        self.process_commands()
+
         if self.changed():
             with open(self.path, "w") as f:
                 f.write(self.contents.getvalue())
@@ -91,6 +85,17 @@ class DockerFile(object):
 
     def _write_line(self, l):
         self.contents.write(l.strip() + "\n")
+        
+    def hash(self):
+        SHAhash = hashlib.sha1()
+        
+        with open(self.path, 'rb') as f:
+            while 1:
+                # Read file in as little chunks
+                buf = f.read(4096)
+                if not buf : break
+                SHAhash.update(hashlib.sha1(buf).hexdigest())
+        return SHAhash.hexdigest()
 
 
 class AptDockerFile(DockerFile):
@@ -104,6 +109,7 @@ class AptDockerFile(DockerFile):
         self.keys = keys
         self._repo_hashes = []
         super(AptDockerFile, self).__init__(project)
+        self.write()
 
     def process_commands(self):
         self._add_apt_keys(self.keys)
@@ -214,8 +220,10 @@ class AptDockerFile(DockerFile):
 class MakeDockerFile(DockerFile):
 
     def __init__(self, project):
-        self.paths = []
         super(MakeDockerFile, self).__init__(project)
+        self.paths = []
+        self.build_path = os.path.join(self.path_dir, "src")
+        self.write()
 
     def expand_make_file(self, prefix, path):
         with open(os.path.join(prefix, path), "r") as f:
@@ -233,21 +241,45 @@ class MakeDockerFile(DockerFile):
                             self.paths.append(d)
                         self.expand_make_file(prefix, mp)
 
+    def hash(self):
+        SHAhash = hashlib.sha1()
+        
+        for root, dirs, files in os.walk(self.build_path):
+            for names in files:
+                filepath = os.path.join(root,names)
+                with open(filepath, 'rb') as f:
+                    while 1:
+                        # Read file in as little chunks
+                        buf = f.read(4096)
+                        if not buf : break
+                        SHAhash.update(hashlib.sha1(buf).hexdigest())
+
+        return SHAhash.hexdigest()
+
+    def _copy_path(self, src, dest):
+        d = os.path.dirname(dest)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        if os.path.isdir(src):
+            shutil.copytree(src, dest)
+        else:
+            shutil.copy(src, dest)
+
     def process_commands(self):
         job = self.project.current_job
 
-        tmp_path = os.path.join(self.path_dir, "src")
-        if os.path.exists(tmp_path):
-            shutil.rmtree(tmp_path, True)
+        if os.path.exists(self.build_path):
+            shutil.rmtree(self.build_path)
 
-        shutil.copytree(self.project.source.path, tmp_path)
-        prefix = os.path.join(tmp_path, job.start_in)
+        prefix = path.join(self.project.source.path, job.start_in)
         self.expand_make_file(prefix, "Makefile")
+        self._copy_path(os.path.join(prefix, "Makefile"), os.path.join(self.build_path, "Makefile"))
+        self._copy_file(os.path.join("src", "Makefile"), path.join(DEP_MAKEFILE_PATH, "Makefile"))
         for v in self.paths:
+            src = path.join(self.project.source.path, v)
+            dest = path.join(self.build_path, v)
+            self._copy_path(src, dest)
             self._copy_file(path.join("src", v), path.join(DEP_MAKEFILE_PATH, v))
-
-        self._copy_file(path.join("src", job.start_in, "Makefile"),
-                        DEP_MAKEFILE_PATH)
 
         self._add_command("cd '{}' && make '{}'".
                           format(DEP_MAKEFILE_PATH,
