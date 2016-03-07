@@ -39,6 +39,9 @@ class BuildContainer(Container):
         if len(self.project.current_job.tests) > 0:
             env['TESTS'] = " ".join(self.project.tests)
 
+        if self.project.current_job.build_target:
+            env["BUILD_TARGET"] = self.project.current_job.build_target
+
         # TODO worry about the order of overrides here, branch env vars should
         # override job env vars
 
