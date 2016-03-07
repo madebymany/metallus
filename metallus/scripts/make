@@ -8,8 +8,12 @@ if [[ -n "$START_IN" ]]; then
   cd "$START_IN"
 fi
 
-make -e
+if [[ -n "$BUILD_TARGET" ]]; then
+  make -e "$BUILD_TARGET"
+else
+  make -e
+fi
 
 if [[ -n "$TESTS" ]]; then
-  make $TESTS
+  make "$TESTS"
 fi

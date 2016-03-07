@@ -16,6 +16,7 @@ class Job:
         self.environment = values.get('environment', {})
         self.build_depends = values.get('build_depends', [])
         self.build_depends_target = values.get('build_depends_target', None)
+        self.build_target = values.get('build_target', None)
         self.packages = values.get('packages', [])
         self.skip_tests = values.get('skip_tests', False)
         self.tests = values.get('tests', [])
