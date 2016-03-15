@@ -196,9 +196,12 @@ class Packager(object):
                             format(e))
 
         self.config['architecture'] = 'amd64'  # TODO: detect this somehow
+        version_epoch = config.get('version_epoch')
         self.version = config.get(
-            'version', '{}-{}'.format(datetime.now().strftime('%Y%m%d%H%M%S'),
-                                      self.project.source.hash))
+            'version', '{}{}-{}'.format(
+                str(version_epoch) + ":" if version_epoch else "",
+                datetime.now().strftime('%Y%m%d%H%M%S'),
+                self.project.source.hash))
         self.directory = os.path.join(self.project.packages,
                                       self.project.source.current_branch,
                                       self.name)
