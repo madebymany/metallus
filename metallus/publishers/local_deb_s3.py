@@ -29,7 +29,7 @@ def deb_s3_args(subcommand, *args, **kwargs):
         else:
             kwargs['visibility'] = 'bucket_owner'
             
-    result = ['deb-s3', subcommand] + list(args) + \
+    result = ['/usr/bin/env', 'deb-s3', subcommand] + list(args) + \
         [("--{}".format(k) if v is True else "--{}={}".format(k, v))
          for (k, v) in kwargs.items()]
 
