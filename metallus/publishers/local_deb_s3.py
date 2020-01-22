@@ -33,7 +33,7 @@ def deb_s3_args(subcommand, *args, **kwargs):
         [("--{}".format(k) if v is True else "--{}={}".format(k, v))
          for (k, v) in kwargs.items()]
 
-    print("Prepared deb-s3 command: '{}'".format(' '.join(result)))
+    print("Prepared deb-s3 command: '{}'".format(result))
     return result
 
 
