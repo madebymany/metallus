@@ -33,7 +33,7 @@ def deb_s3_args(subcommand, *args, **kwargs):
         [("--{}".format(k) if v is True else "--{}={}".format(k, v))
          for (k, v) in kwargs.items()]
 
-    print("Prepared deb-s3 command: '{result}'".format(**locals()))
+    print("Prepared deb-s3 command: '{}'".format(', '.join(result)))
     return result
 
 
@@ -63,6 +63,7 @@ class LocalDebS3Publisher(Publisher):
         raw = subprocess.check_output(
             deb_s3_args('list', repo=repo, long=True,
                         codename=codename, component=component, arch=arch))
+        print("deb-s3 command result: '{}'".format(raw))
         return [dict(LocalDebS3Publisher.MANIFEST_LINE_PATTERN.findall(p))
                 for p in raw.split("\n\n")]
 
