@@ -60,9 +60,10 @@ class LocalDebS3Publisher(Publisher):
 
     def list(self, repo, codename, component, arch):
         # No need for deb-s3 lock, as it's read-only
-        raw = subprocess.check_output(
-            deb_s3_args('list', repo=repo, long=True,
-                        codename=codename, component=component, arch=arch))
+        deb_s3_command = deb_s3_args('list', repo=repo, long=True,
+                        codename=codename, component=component, arch=arch)
+        print("Running deb-s3 command: '{}'".format(deb_s3_command))
+        raw = subprocess.check_output(deb_s3_command)
         print("deb-s3 command result: '{}'".format(raw))
         return [dict(LocalDebS3Publisher.MANIFEST_LINE_PATTERN.findall(p))
                 for p in raw.split("\n\n")]
