@@ -2,6 +2,6 @@ docker==4.1.0
 scp==0.10.2
 pyyaml==3.10
 GitPython==2.1.14
-requests==2.8.1
+requests==2.14.2
 pyslack==0.1.0
 jsonrpc2-zeromq==1.1.2
