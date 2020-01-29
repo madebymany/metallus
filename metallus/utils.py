@@ -17,7 +17,7 @@ def new_docker_client():
     else:
         kwargs['tls'].assert_hostname = False
     kwargs['version'] = "1.19"
-    return docker.Client(timeout=120, **kwargs)
+    return docker.APIClient(timeout=120, **kwargs)
 
 
 def s3_host(region):
