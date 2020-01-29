@@ -69,8 +69,7 @@ class Container(object):
 
     def stop(self):
         self.client.stop(self.container_id)
-        self.client.kill(self.container_id)
-
+        
     def remove(self):
         self.client.remove_container(self.container_id, force=True)
 
