@@ -1,4 +1,4 @@
-docker-py==2.7.0
+docker==4.1.0
 scp==0.10.2
 pyyaml==3.10
 GitPython==2.1.14
