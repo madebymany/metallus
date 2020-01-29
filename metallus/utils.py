@@ -16,7 +16,7 @@ def new_docker_client():
         kwargs['base_url'] = "unix:///var/run/docker.sock"
     else:
         kwargs['tls'].assert_hostname = False
-    kwargs['version'] = "1.19"
+    kwargs['version'] = "1.21"
     return docker.APIClient(timeout=120, **kwargs)
 
 
