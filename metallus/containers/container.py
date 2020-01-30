@@ -62,7 +62,7 @@ class Container(object):
         self.stop()
         self.status = int(
             self.client.inspect_container(self.container)['State']['ExitCode'])
-
+        print(self.client.info())
         root_dir = next(v for k, v in self.client.info()['DriverStatus']
                         if k == "Root Dir")
         self.directory = os.path.join(root_dir, 'diff', self.container_id)
