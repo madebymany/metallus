@@ -49,11 +49,10 @@ class Container(object):
                                                       user=self.user,
                                                       command=self.cmd,
                                                       environment=self.env,
-                                                      volumes=self.mounts,
-                                                      host_config=self.client.create_host_config(privileged=True, binds=self.bindings))
+                                                      volumes=self.mounts)
         self.container_id = self.container['Id']
 
-        self.client.start(self.container)
+        self.client.start(self.container, privileged=True, binds=self.bindings)
 
         for line in self.client.logs(self.container, stdout=True, stderr=True,
                                      stream=True):
