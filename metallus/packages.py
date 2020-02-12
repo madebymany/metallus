@@ -300,7 +300,7 @@ class Packager(object):
             paths.append(name)
         if len(paths) == 0:
             paths.append(self.directory)
-        args = ['fpm'] + \
+        args = ['/usr/bin/env', 'fpm'] + \
             list(self.get_dependencies(self.config.get('depends', []))) + \
             list(self.get_conflicts(self.config.get('conflicts', []))) + \
             list(self.get_replaces(self.config.get('replaces', []))) + \
